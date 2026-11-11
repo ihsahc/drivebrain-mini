@@ -46,7 +46,7 @@ In Foxglove, open a connection to `ws://192.168.203.67:5555` to view your data! 
 
 ## Test fake pulses on your Mac (no Pi)
 
-Keep `USE_FAKE_PULSES = true` in `drivebrain_app/main.cpp`. With Docker running:
+The local Docker service enables fake pulses. With Docker running:
 
 ```bash
 cd /Users/isha/Downloads/drivebrain-mini
@@ -60,5 +60,5 @@ in the background) to finish the MCAP. Open the resulting file in `recordings/`
 in Foxglove to replay it. Each new run starts a new recording and resets the count.
 
 Local builds use `build-local/`; the Pi build command and `build/` remain separate.
-For real sensor readings, set `USE_FAKE_PULSES = false`, rebuild for the Pi, and use
-BCM GPIO 12 (physical header pin 32), checking the GPIO chip on your Pi.
+The Pi executable reads real pulses by default. Rebuild it using the Build command
+above and use BCM GPIO 12 (physical header pin 32). Check the GPIO chip on your Pi.

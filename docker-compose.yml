@@ -16,6 +16,7 @@ services:
       - "127.0.0.1:5555:5555"
     environment:
       RECORDINGS_DIR: /app/recordings
+      USE_FAKE_PULSES: "1"
     volumes:
       - ./:/app
       - conan-cache:/root/.conan2

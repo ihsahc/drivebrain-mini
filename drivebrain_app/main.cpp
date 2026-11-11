@@ -4,6 +4,8 @@
 #include <drivebrain_msgs.pb.h>
 #include <chrono>
 #include <csignal>
+#include <cstdlib>
+#include <string_view>
 #include <memory>
 #include <stdexcept>
 #include <thread>
@@ -19,8 +21,8 @@ int main() {
     std::signal(SIGTERM, sig_handler);
     int status = 0;
     try {
-        constexpr bool USE_FAKE_PULSES = true; // Set false for the real flowmeter on GPIO 12.
-        FlowmeterComms flowmeter(USE_FAKE_PULSES);
+        const char* fake_pulses = std::getenv("USE_FAKE_PULSES");
+        FlowmeterComms flowmeter(fake_pulses && std::string_view(fake_pulses) == "1");
         core::MCAPLogger::create(mcap::McapWriterOptions(""));
         if (core::MCAPLogger::instance().open_new_mcap() != 0) {
             throw std::runtime_error("Could not open MCAP recording");
