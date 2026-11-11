@@ -1,0 +1,11 @@
+[Unit]
+Description=mini-drivebrain
+
+[Service]
+Type=simple
+ExecStart=/home/nixos/mini-drivebrain
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

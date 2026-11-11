@@ -8,5 +8,17 @@ services:
       - ./:/app
       - conan-cache:/root/.conan2
 
+  local:
+    build: .
+    image: mini-drivebrain
+    command: sh ./run_local.sh
+    ports:
+      - "127.0.0.1:5555:5555"
+    environment:
+      RECORDINGS_DIR: /app/recordings
+    volumes:
+      - ./:/app
+      - conan-cache:/root/.conan2
+
 volumes:
   conan-cache:

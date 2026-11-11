@@ -1,55 +1,51 @@
+#include <FlowmeterComms.hpp>
 #include <FoxgloveServer.hpp>
 #include <MCAPLogger.hpp>
 #include <drivebrain_msgs.pb.h>
-
-#include <atomic>
 #include <chrono>
 #include <csignal>
+#include <memory>
+#include <stdexcept>
 #include <thread>
-#include <fmt/chrono.h>
-#include <spdlog/spdlog.h>
 
-std::atomic<bool> running{true};
+volatile std::sig_atomic_t running = 1;
 
-void sig_handler(int signal) {
-    if(signal == SIGINT || signal == SIGTERM) {
-      spdlog::warn("Interrupted, stopping mini-drivebrain");
-      running = false;
-    }
+void sig_handler(int) {
+    running = 0;
 }
 
 int main() {
-  std::signal(SIGINT, sig_handler);
-  std::signal(SIGTERM, sig_handler);
+    std::signal(SIGINT, sig_handler);
+    std::signal(SIGTERM, sig_handler);
+    int status = 0;
+    try {
+        constexpr bool USE_FAKE_PULSES = true; // Set false for the real flowmeter on GPIO 12.
+        FlowmeterComms flowmeter(USE_FAKE_PULSES);
+        core::MCAPLogger::create(mcap::McapWriterOptions(""));
+        if (core::MCAPLogger::instance().open_new_mcap() != 0) {
+            throw std::runtime_error("Could not open MCAP recording");
+        }
+        core::MCAPLogger::instance().init_logging();
+        core::FoxgloveServer::create();
 
-  core::MCAPLogger::create(mcap::McapWriterOptions(""));
-  core::FoxgloveServer::create();
-
-  core::MCAPLogger::instance().open_new_mcap();
-  core::MCAPLogger::instance().init_logging();
-
-  spdlog::info("Constructed logging singletons");
-
-  auto loop_time = 0.004;
-  std::chrono::microseconds loop_time_ms((int) (loop_time * 1000000.0f));
-  auto next_tick = std::chrono::steady_clock::now();
-
-  while(running) {
-
-    next_tick += loop_time_ms;
-
-    auto now = std::chrono::steady_clock::now();
-    if(now > next_tick) {
-      spdlog::warn("Loop overrun by {}", now-next_tick);
-      next_tick = now;
+        auto log_pulses = [&] {
+            auto msg = std::make_shared<drivebrain_msgs::FlowmeterData>();
+            msg->set_pulse_count(flowmeter.latest_pulse_count());
+            core::MCAPLogger::instance().log_msg(msg);
+            core::FoxgloveServer::instance().send_live_telem_msg(msg);
+        };
+        while (running && !flowmeter.failed()) {
+            log_pulses();
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+        flowmeter.stop(); // Join the reader, then drain the pulse queue.
+        log_pulses(); // Save the final count before closing the logger.
+        if (flowmeter.failed()) status = 1;
+    } catch (const std::exception& error) {
+        spdlog::error("{}", error.what());
+        status = 1;
     }
-
-    std::this_thread::sleep_until(next_tick);
-  }
-
-  core::MCAPLogger::instance().destroy();
-  core::FoxgloveServer::instance().destroy();
-  spdlog::info("Logging singletons safely destroyed");
-
-  return 0;
+    core::MCAPLogger::destroy();
+    core::FoxgloveServer::destroy();
+    return status;
 }

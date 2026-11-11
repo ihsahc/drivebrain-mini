@@ -1,16 +1,21 @@
 #define MCAP_IMPLEMENTATION
 #include <atomic>
+#include <cstdlib>
+#include <filesystem>
 #include <mutex>
 
 #include <MCAPLogger.hpp>
 
-#define RECORDINGS_DIR "/home/nixos/recordings"
+static const char* recordings_dir() {
+    const char* path = std::getenv("RECORDINGS_DIR");
+    return path ? path : "/home/nixos/recordings";
+}
 
 /****************************************************************
  * HELPER METHODS
  ****************************************************************/
 static std::string get_logfile_name() {
-  std::string dir_path = RECORDINGS_DIR;
+  std::string dir_path = recordings_dir();
   int max_file_number = 0;
 
   try {
@@ -100,9 +105,10 @@ void core::MCAPLogger::destroy() {
 }
 
 int core::MCAPLogger::open_new_mcap() {
+    std::filesystem::create_directories(recordings_dir());
     std::string mcap_name = get_logfile_name();
     spdlog::info("Attempting to open new MCAP file: {}", mcap_name);
-    _log_name = std::string(RECORDINGS_DIR) + "/" + get_logfile_name();
+    _log_name = std::string(recordings_dir()) + "/" + mcap_name;
 
     const auto res = _writer.open(_log_name, _options);
     if (!res.ok()) {
