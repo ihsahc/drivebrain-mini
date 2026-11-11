@@ -43,22 +43,3 @@ sudo systemctl start <your-service-name>.service
 
 In Foxglove, open a connection to `ws://192.168.203.67:5555` to view your data! If you want to view the logged mcap, you can `scp` it from the Pi's recordings folder onto your computer. You'll need to run `mcap recover` on these pulled mcaps before viewing them.
 
-
-## Test fake pulses on your Mac (no Pi)
-
-The local Docker service enables fake pulses. With Docker running:
-
-```bash
-cd /Users/isha/Downloads/drivebrain-mini
-docker compose up local
-```
-
-In Foxglove, open a Foxglove WebSocket connection to `ws://localhost:5555`.
-Add a Raw Messages panel and select `FlowmeterData`. The total rises by about
-10 pulses per second. Stop with Ctrl-C (or `docker compose stop local` if started
-in the background) to finish the MCAP. Open the resulting file in `recordings/`
-in Foxglove to replay it. Each new run starts a new recording and resets the count.
-
-Local builds use `build-local/`; the Pi build command and `build/` remain separate.
-The Pi executable reads real pulses by default. Rebuild it using the Build command
-above and use BCM GPIO 12 (physical header pin 32). Check the GPIO chip on your Pi.
